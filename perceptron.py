@@ -1,9 +1,10 @@
 import numpy as np
-
+import time
 """
 perceptron.py
 Runs the Perceptron algorithm.
 """
+
 
 class Perceptron(object):
     def __init__(self, w, p, train, limit, gui_update_callback):
@@ -66,6 +67,7 @@ class Perceptron(object):
             # Update graph
             self.__callback(self.__weights)
             iteration += 1
+            time.sleep(0.1)
 
     def __format_training_points(self, training_points):
         # Split the training points into class 1 and class 2
@@ -76,6 +78,7 @@ class Perceptron(object):
         class1[:, -1] = 1
         class2[:, -1] = 1
         return class1, class2
+
 
 # Remove later
 if __name__ == "__main__":
