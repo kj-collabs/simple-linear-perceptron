@@ -1,5 +1,10 @@
 import numpy as np
 
+"""
+perceptron.py
+Runs the Perceptron algorithm.
+"""
+
 class Perceptron(object):
     def __init__(self, w, p, train, limit, gui_update_callback):
         """
@@ -12,7 +17,7 @@ class Perceptron(object):
         """
         self.__weights = w
         self.__learning_rate = p
-        self.__train_points = train
+        self.__train_points = self.__format_training_points(train)
         self.__iter_limit = limit
         self.__callback = gui_update_callback
 
@@ -62,12 +67,21 @@ class Perceptron(object):
             self.__callback(self.__weights)
             iteration += 1
 
+    def __format_training_points(self, training_points):
+        # Split the training points into class 1 and class 2
+        class1 = training_points[training_points[:, -1] == 1]
+        class2 = training_points[training_points[:, -1] == 2]
+        # Replace the last item in the array with 1 for w0 rather
+        # than the class value 1 or 2.
+        class1[:, -1] = 1
+        class2[:, -1] = 1
+        return class1, class2
+
+# Remove later
 if __name__ == "__main__":
     w = np.array([1.0, -1.0, 1.0])
     p = 0.5
-    train = np.array([
-       [[0, 0, 1], [1, 0, 1], [0, 1, 1]],
-       [[1, 2, 1], [2, 1, 1], [2, 2, 1]]
-    ])
+    train = np.array([[0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 2, 2], [2, 1, 2], [2, 2, 2]])
+
     perceptron = Perceptron(w, p, train, 100, lambda x: print(x))
     perceptron.run_perceptron()
