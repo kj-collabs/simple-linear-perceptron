@@ -285,13 +285,19 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addSpacing(14)
         options.addLayout(settings_container)
 
+        diagnostic_label = QtWidgets.QLabel("Diagnostics")
+        diagnostic_label.setStyleSheet("font-size: 18px; text-decoration: underline")
+        diagnostic_label.setAlignment(Qt.AlignCenter)
         diagnostic_box = QtWidgets.QVBoxLayout()
+        diagnostic_box.setAlignment(Qt.AlignVCenter)
+        diagnostic_box.addWidget(diagnostic_label)
         graphAndDiagnosticBox = QtWidgets.QHBoxLayout()
-
         graphAndDiagnosticBox.addLayout(diagnostic_box)
         graphAndDiagnosticBox.addWidget(FigureCanvas(self.figure))
 
         for label in DIAGNOSTIC_LABELS.values():
+            label.setMaximumWidth(200)
+            label.setAlignment(Qt.AlignCenter)
             diagnostic_box.addWidget(label)
 
         layout_canvas.addLayout(graphAndDiagnosticBox)
@@ -413,8 +419,8 @@ class PerceptronViewer(QtWidgets.QWidget):
         (current iteration)
         """
         DIAGNOSTIC_LABELS["iteration_label"].setText(f"Current Iteration: {iteration}")
-        DIAGNOSTIC_LABELS["current_weights"].setText(f"Current Weights: [w1 = {round(weights[0], 4)}] "
-                                                     f"[w2 = {round(weights[1], 4)}] [w0 = {round(weights[2], 4)}]")
+        DIAGNOSTIC_LABELS["current_weights"].setText(f"Current Weights: \n[w1 = {round(weights[0], 4)}] "
+                                                     f"\n[w2 = {round(weights[1], 4)}] \n[w0 = {round(weights[2], 4)}]")
 
         new_ydata = weights_to_y(weights)
         self.decision_boundary.set_ydata(new_ydata)
@@ -489,7 +495,7 @@ if __name__ == "__main__":
 
     DIAGNOSTIC_LABELS = {
         "iteration_label": QtWidgets.QLabel("Current Iteration: 0"),
-        "current_weights": QtWidgets.QLabel("Current Weights: [w1 = 1] [w2 = 1] [w0 = 1]"),
+        "current_weights": QtWidgets.QLabel("Current Weights: \n[w1 = 0] \n[w2 = 0] \n[w0 = 0]"),
     }
 
     win = PerceptronViewer()
