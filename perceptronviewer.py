@@ -73,9 +73,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         self.visualisation_speed = 0.25
         self.iteration_limit = 100
 
-        y = weights_to_y(self.weights)
-        (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
-
         layout_canvas = QtWidgets.QVBoxLayout(self)
 
         options = QtWidgets.QHBoxLayout(self)
@@ -226,6 +223,9 @@ class PerceptronViewer(QtWidgets.QWidget):
         learning_line_field = QtWidgets.QLineEdit(self)
         learning_line_field.setValidator(QDoubleValidator(0, 10, 2))
 
+        iteration_limit_field = QtWidgets.QLineEdit(self)
+        iteration_limit_field.setValidator(QIntValidator(1, 1000000))
+
         speed_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
         speed_slider.setMinimum(0)
         speed_slider.setMaximum(len(VIS_SPEEDS) - 1)
@@ -245,6 +245,7 @@ class PerceptronViewer(QtWidgets.QWidget):
             "w_0": w0_line_field,
             "learning_rate": learning_line_field,
             "visualisation_speed": speed_slider,
+            "iteration_limit": iteration_limit_field,
         }
 
         run_perceptron_button = QtWidgets.QPushButton("Run Perceptron")
@@ -254,6 +255,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         p_settings_form.addRow("Initial w2: ", w2_line_field)
         p_settings_form.addRow("Initial w0: ", w0_line_field)
         p_settings_form.addRow("Learning Rate: ", learning_line_field)
+        p_settings_form.addRow("Iteration Limit: ", iteration_limit_field)
         p_settings_form.addRow("Visualisation Speed: "
                                + VIS_SPEEDS[len(VIS_SPEEDS) // 2][0],
                                speed_slider)
@@ -342,6 +344,7 @@ class PerceptronViewer(QtWidgets.QWidget):
             w2 = float(self.__settings_form["w_2"].text())
             w0 = float(self.__settings_form["w_0"].text())
             learning_rate = float(self.__settings_form["learning_rate"].text())
+            iter_limit = int(self.__settings_form["iteration_limit"].text())
             speed = int(self.__settings_form["visualisation_speed"].value())
             vis_speed = VIS_SPEEDS[speed][1]
         except ValueError:
@@ -350,8 +353,11 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         warning_text.setText("")
 
+        y = weights_to_y(self.weights)
+        (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
+
         self.perceptron = Perceptron([w1, w2, w0], learning_rate, self.dataset,
-                                     100, self.update_line, vis_speed)
+                                     iter_limit, self.update_line, vis_speed)
 
         self.start_learning()
 
@@ -372,8 +378,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         self.axes.set_ylim(ylim)
         for point in self.dataset:
             self.axes.plot(point[0], point[1], CLASS_MARKERS[int(point[2] - 1)])
-        y = weights_to_y(self.weights)
-        (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
         self.figure.canvas.draw()
 
     def update_line(self, weights):
