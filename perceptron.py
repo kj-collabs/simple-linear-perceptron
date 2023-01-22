@@ -4,7 +4,7 @@ Runs the Perceptron algorithm.
 """
 
 __all__ = ["Perceptron", "PerceptronSettings"]
-__version__ = "1.0.1.0"
+__version__ = "1.2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import time
@@ -41,7 +41,7 @@ class Perceptron:
         self.__learning_rate = settings.learning_rate
         self.__iter_limit = settings.iter_limit
         self.__delay = settings.visualisation_speed
-        self.__train_points = self.__format_training_points(train_data)
+        self.__train_points = self.format_training_points(train_data)
         self.__callback = gui_update_callback
 
     def set_learning_rate(self, learning):

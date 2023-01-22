@@ -6,7 +6,7 @@ perceptron learning algorithm.
 """
 
 __all__ = ["PerceptronViewer"]
-__version__ = "1.0.1.0"
+__version__ = "1.2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
@@ -20,7 +20,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
+from PyQt5.QtGui import QIntValidator, QDoubleValidator, QFont, QFontMetrics
 
 from perceptron import Perceptron, PerceptronSettings
 
@@ -46,6 +46,61 @@ class Separator(QtWidgets.QFrame):
         self.setLineWidth(width)
         self.setStyleSheet(f"background-color: {SEPARATOR_COLOUR}; "
                            f"color: {SEPARATOR_COLOUR}")
+
+
+class PyQtForm(QtWidgets.QVBoxLayout):
+    """A generic form class to keep the code in PerceptronViewer clean."""
+
+    def __init__(self, title, fields, validators, btn_text, on_submit_action):
+        super().__init__()
+
+        # Break fields parameter up to titles, ids, and custom widgets (if any)
+        field_titles = [a for (a, _, _) in fields]
+        field_ids = [b for (_, b, _) in fields]
+        customs = [c for (_, _, c) in fields]
+
+        form_title = QtWidgets.QLabel(title)
+        form_title.setFont(TITLE_FONT)
+
+        self.warning_text = QtWidgets.QLabel()
+        self.warning_text.setMinimumWidth(MIN_FORM_WIDTH)
+        self.warning_text.setFont(ERROR_FONT)
+        self.warning_text.setStyleSheet("color: red")
+        self.warning_text.setWordWrap(True)
+
+        form = QtWidgets.QFormLayout()
+        form.setLabelAlignment(Qt.AlignRight)
+
+        # Store fields and corrosponding labels in a dict for easy access
+        self.fields = {}
+        self.labels = {}
+        for i in range(len(fields)):
+            if customs[i] is not None:
+                c_field = customs[i]  # Get custom widget (if one was passed)
+                form.addRow(field_titles[i] + ": ", c_field)
+                self.fields[field_ids[i]] = c_field
+                self.labels[field_ids[i]] = form.labelForField(c_field)
+
+                c_field.setFont(LABEL_FONT)
+                form.labelForField(c_field).setFont(LABEL_FONT)
+            else:
+                current_field = QtWidgets.QLineEdit()
+                current_field.setValidator(validators[i])
+                form.addRow(field_titles[i] + ": ", current_field)
+                self.fields[field_ids[i]] = current_field
+                self.labels[field_ids[i]] = form.labelForField(current_field)
+
+                current_field.setFont(LABEL_FONT)
+                form.labelForField(current_field).setFont(LABEL_FONT)
+
+        submit_button = QtWidgets.QPushButton(btn_text)
+        submit_button.clicked.connect(on_submit_action)
+        form.addWidget(submit_button)
+
+        self.addWidget(form_title)
+        self.addSpacing(5)
+        self.addWidget(self.warning_text)
+        self.addLayout(form)
 
 
 class PerceptronViewer(QtWidgets.QWidget):
@@ -75,89 +130,27 @@ class PerceptronViewer(QtWidgets.QWidget):
         options = QtWidgets.QHBoxLayout()
 
         # Form to control axis limits
-        ax_container = QtWidgets.QVBoxLayout()
-
-        ax_lim_form = QtWidgets.QFormLayout()
-        ax_lim_form.setLabelAlignment(Qt.AlignRight)
-
-        ax_title = QtWidgets.QLabel("Update Axis Limits")
-        ax_title.setStyleSheet("font-size: 18px; text-decoration: underline")
-
-        ax_warning_text = QtWidgets.QLabel(self)
-        ax_warning_text.setStyleSheet("color: red; font-size: 14px")
-
-        error_width = ax_warning_text.fontMetrics()\
-            .boundingRect(" Please enter a number for each dimension! ").width()
-        error_width = int(error_width * 1.25)
-
-        ax_warning_text.setFixedWidth(error_width)
-
-        ax_x_lower = QtWidgets.QLineEdit(self)
-        ax_x_lower.setValidator(QIntValidator(-999, 999))
-
-        ax_x_upper = QtWidgets.QLineEdit(self)
-        ax_x_upper.setValidator(QIntValidator(-999, 999))
-
-        ax_y_lower = QtWidgets.QLineEdit(self)
-        ax_y_lower.setValidator(QIntValidator(-999, 999))
-
-        ax_y_upper = QtWidgets.QLineEdit(self)
-        ax_y_upper.setValidator(QIntValidator(-999, 999))
-
-        self.__axis_form = {
-            "warning_text": ax_warning_text,
-            "x_min": ax_x_lower,
-            "x_max": ax_x_upper,
-            "y_min": ax_y_lower,
-            "y_max": ax_y_upper
-        }
-
-        submit_ax_button = QtWidgets.QPushButton("Update Axes")
-        submit_ax_button.clicked.connect(self.update_axes)
-
-        ax_lim_form.addRow("Axis X Lower Bound: ", ax_x_lower)
-        ax_lim_form.addRow("Axis X Upper Bound: ", ax_x_upper)
-        ax_lim_form.addRow("Axis Y Lower Bound: ", ax_y_lower)
-        ax_lim_form.addRow("Axis Y Upper Bound: ", ax_y_upper)
-        ax_lim_form.addWidget(submit_ax_button)
-
-        ax_container.addWidget(ax_title)
-        ax_container.addSpacing(10)
-        ax_container.addWidget(ax_warning_text)
-        ax_container.addSpacing(5)
-        ax_container.addLayout(ax_lim_form)
-        ax_container.addSpacing(20)
+        self.__ax_form = PyQtForm("Update Axis Limits",
+                                  [("Axis X Lower Bound", "x_min", None),
+                                   ("Axis X Upper Bound", "x_max", None),
+                                   ("Axis Y Lower Bound", "y_min", None),
+                                   ("Axis Y Upper Bound", "y_max", None)],
+                                  [QIntValidator(-999, 999) for _ in range(4)],
+                                  "Update Axes", self.update_axes)
 
         # Form to add points to dataset
-        point_container = QtWidgets.QVBoxLayout()
-        point_add_form = QtWidgets.QFormLayout()
-        point_add_form.setLabelAlignment(Qt.AlignRight)
-
-        point_title = QtWidgets.QLabel("Add Points to Dataset")
-        point_title.setStyleSheet("font-size: 18px; text-decoration: underline")
-
-        point_warning_text = QtWidgets.QLabel(self)
-        point_warning_text.setStyleSheet("color: red; font-size: 14px")
-        point_warning_text.setFixedWidth(error_width)
-
-        point_x = QtWidgets.QLineEdit(self)
-        point_x.setValidator(QDoubleValidator(-10, 10, 4))
-
-        point_y = QtWidgets.QLineEdit(self)
-        point_y.setValidator(QDoubleValidator(-10, 10, 4))
-
         point_class = QtWidgets.QComboBox(self)
         point_class.addItems(["1", "2"])
 
-        self.__point_form = {
-            "warning_text": point_warning_text,
-            "x": point_x,
-            "y": point_y,
-            "class_label": point_class
-        }
+        self.__point_form = PyQtForm("Add Points to Dataset",
+                                     [("Point X", "x", None),
+                                      ("Point Y", "y", None),
+                                      ("Point Class", "class", point_class)],
+                                     [QDoubleValidator(-10, 10, 4),
+                                      QDoubleValidator(-10, 10, 4)],
+                                     "Add Point", self.add_point)
 
-        submit_point_button = QtWidgets.QPushButton("Add Point")
-        submit_point_button.clicked.connect(self.add_point)
+        point_container = QtWidgets.QVBoxLayout()
 
         or_box = QtWidgets.QHBoxLayout()
         left_line = Separator(QtWidgets.QFrame.HLine, 2)
@@ -178,16 +171,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         or_box.addSpacing(5)
         or_box.addWidget(right_line)
 
-        point_add_form.addRow("Point X: ", point_x)
-        point_add_form.addRow("Point Y: ", point_y)
-        point_add_form.addRow("Point Class: ", point_class)
-        point_add_form.addWidget(submit_point_button)
-
-        point_container.addWidget(point_title)
-        point_container.addSpacing(10)
-        point_container.addWidget(point_warning_text)
-        point_container.addSpacing(5)
-        point_container.addLayout(point_add_form)
+        point_container.addLayout(self.__point_form)
         point_container.addSpacing(10)
         point_container.addLayout(or_box)
         point_container.addSpacing(10)
@@ -195,87 +179,50 @@ class PerceptronViewer(QtWidgets.QWidget):
         point_container.addSpacing(20)
 
         # Form for updating perceptron settings and running algorithm
-        settings_container = QtWidgets.QVBoxLayout()
-
-        p_settings_form = QtWidgets.QFormLayout()
-        p_settings_form.setLabelAlignment(Qt.AlignRight)
-
-        settings_title = QtWidgets.QLabel("Run Perceptron")
-        settings_title.setStyleSheet(
-            "font-size: 18px; text-decoration: underline")
-
-        settings_warning_text = QtWidgets.QLabel(self)
-        settings_warning_text.setStyleSheet("color: red; font-size: 14px")
-        settings_warning_text.setFixedWidth(error_width)
-        settings_warning_text.setWordWrap(True)
-
-        w_1_line_field = QtWidgets.QLineEdit(self)
-        w_1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
-
-        w_2_line_field = QtWidgets.QLineEdit(self)
-        w_2_line_field.setValidator(QDoubleValidator(-999, 999, 4))
-
-        w_0_line_field = QtWidgets.QLineEdit(self)
-        w_0_line_field.setValidator(QDoubleValidator(-999, 999, 4))
-
-        learning_line_field = QtWidgets.QLineEdit(self)
-        learning_line_field.setValidator(QDoubleValidator(0, 10, 2))
-
-        iteration_limit_field = QtWidgets.QLineEdit(self)
-        iteration_limit_field.setValidator(QIntValidator(1, 1000000))
-
+        # Create QSlider to control visualisation speed
         speed_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
         speed_slider.setMinimum(0)
         speed_slider.setMaximum(len(VIS_SPEEDS) - 1)
         speed_slider.setSingleStep(1)
         speed_slider.setValue(len(VIS_SPEEDS) // 2)
 
+        # When speed changed, update the label to reflect the current selection.
         def slider_update(i):
-            update_form_label(p_settings_form, speed_slider,
-                              f"Visualisation Speed: {VIS_SPEEDS[i][0]}")
+            speed = VIS_SPEEDS[i][0]
+            speed_text = "Visualisation Speed: " + speed
+            self.__settings_form.labels["speed"].setText(speed_text)
 
         speed_slider.valueChanged.connect(slider_update)
 
-        self.__settings_form = {
-            "warning_text": settings_warning_text,
-            "w_1": w_1_line_field,
-            "w_2": w_2_line_field,
-            "w_0": w_0_line_field,
-            "learning_rate": learning_line_field,
-            "visualisation_speed": speed_slider,
-            "iteration_limit": iteration_limit_field,
-        }
+        init_speed = "Visualisation Speed: "\
+                     + VIS_SPEEDS[len(VIS_SPEEDS) // 2][0]
 
-        run_perceptron_button = QtWidgets.QPushButton("Run Perceptron")
-        run_perceptron_button.clicked.connect(self.run_perceptron)
+        self.__settings_form = PyQtForm("Run Perceptron",
+                                        [("w_1", "w_1", None),
+                                         ("w_2", "w_2", None),
+                                         ("w_0", "w_0", None),
+                                         ("Learning Rate", "learning", None),
+                                         ("Iteration Limit", "iter_lim", None),
+                                         (init_speed, "speed", speed_slider)],
+                                        [QDoubleValidator(-999, 999, 4),
+                                         QDoubleValidator(-999, 999, 4),
+                                         QDoubleValidator(-999, 999, 4),
+                                         QDoubleValidator(0, 10, 2),
+                                         QIntValidator(1, 1000000), None],
+                                        "Run Perceptron", self.run_perceptron)
 
-        p_settings_form.addRow("Initial w_1: ", w_1_line_field)
-        p_settings_form.addRow("Initial w_2: ", w_2_line_field)
-        p_settings_form.addRow("Initial w_0: ", w_0_line_field)
-        p_settings_form.addRow("Learning Rate: ", learning_line_field)
-        p_settings_form.addRow("Iteration Limit: ", iteration_limit_field)
-        p_settings_form.addRow("Visualisation Speed: "
-                               + VIS_SPEEDS[len(VIS_SPEEDS) // 2][0],
-                               speed_slider)
-        p_settings_form.addWidget(run_perceptron_button)
-
-        settings_container.addWidget(settings_title)
-        settings_container.addSpacing(10)
-        settings_container.addWidget(settings_warning_text)
-        settings_container.addSpacing(5)
-        settings_container.addLayout(p_settings_form)
-        settings_container.addSpacing(20)
-
-        speed_label = p_settings_form.labelForField(speed_slider)
+        # Fix width of speed label, to prevent form expanding/shrinking when
+        # speed value changes.
+        speed_label = self.__settings_form.labels["speed"]
         longest = "Visualisation Speed: " + max(s[0] for s in VIS_SPEEDS)
         long_length = speed_label.fontMetrics().boundingRect(longest).width()
         speed_label.setFixedWidth(long_length)
 
-        ax_container.setAlignment(Qt.AlignTop)
+        self.__ax_form.setAlignment(Qt.AlignTop)
         point_container.setAlignment(Qt.AlignTop)
-        settings_container.setAlignment(Qt.AlignTop)
+        self.__settings_form.setAlignment(Qt.AlignTop)
 
-        options.addLayout(ax_container)
+        options.addLayout(self.__ax_form)
         options.addSpacing(14)
         options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
         options.addSpacing(14)
@@ -283,7 +230,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addSpacing(14)
         options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
         options.addSpacing(14)
-        options.addLayout(settings_container)
+        options.addLayout(self.__settings_form)
 
         layout_canvas.addWidget(FigureCanvas(self.figure))
         layout_canvas.addSpacing(30)
@@ -291,17 +238,17 @@ class PerceptronViewer(QtWidgets.QWidget):
 
     def add_point(self):
         """Takes user input and adds a point at the desired location"""
-        warning_text = self.__point_form["warning_text"]
+        warning_text = self.__point_form.warning_text
         try:
-            x = float(self.__point_form["x"].text())
-            y = float(self.__point_form["y"].text())
+            x = float(self.__point_form.fields["x"].text())
+            y = float(self.__point_form.fields["y"].text())
         except ValueError:
             warning_text.setText("Please enter a number for each dimension!")
             return
 
         warning_text.setText("")
 
-        class_ = int(self.__point_form["class_label"].currentText())
+        class_ = int(self.__point_form.fields["class"].currentText())
 
         self.dataset.append([x, y, class_])
         self.axes.plot(x, y, CLASS_MARKERS[int(class_ - 1)])
@@ -309,13 +256,13 @@ class PerceptronViewer(QtWidgets.QWidget):
 
     def update_axes(self):
         """Takes user input and updates the axis xlim and ylim"""
-        warning_text = self.__axis_form["warning_text"]
+        warning_text = self.__ax_form.warning_text
 
         try:
-            min_x = int(self.__axis_form["x_min"].text())
-            max_x = int(self.__axis_form["x_max"].text())
-            min_y = int(self.__axis_form["y_min"].text())
-            max_y = int(self.__axis_form["y_max"].text())
+            min_x = int(self.__ax_form.fields["x_min"].text())
+            max_x = int(self.__ax_form.fields["x_max"].text())
+            min_y = int(self.__ax_form.fields["y_min"].text())
+            max_y = int(self.__ax_form.fields["y_max"].text())
         except ValueError:
             warning_text.setText("Please enter a number for each bound!")
             return
@@ -336,16 +283,22 @@ class PerceptronViewer(QtWidgets.QWidget):
 
     def run_perceptron(self):
         """Instantiates and runs a perceptron using user-inputted settings."""
-        warning_text = self.__settings_form["warning_text"]
+        warning_text = self.__settings_form.warning_text
 
         try:
-            w_1 = float(self.__settings_form["w_1"].text())
-            w_2 = float(self.__settings_form["w_2"].text())
-            w_0 = float(self.__settings_form["w_0"].text())
-            learning_rate = float(self.__settings_form["learning_rate"].text())
-            iter_limit = int(self.__settings_form["iteration_limit"].text())
-            speed = int(self.__settings_form["visualisation_speed"].value())
+            w_1 = float(self.__settings_form.fields["w_1"].text())
+            w_2 = float(self.__settings_form.fields["w_2"].text())
+            w_0 = float(self.__settings_form.fields["w_0"].text())
+
+            learning_rate = self.__settings_form.fields["learning"].text()
+            learning_rate = float(learning_rate)
+
+            iter_limit = self.__settings_form.fields["iter_lim"].text()
+            iter_limit = int(iter_limit)
+
+            speed = self.__settings_form.fields["speed"].value()
             vis_speed = VIS_SPEEDS[speed][1]
+
         except ValueError:
             warning_text.setText("Please enter a value for each setting!")
             return
@@ -355,7 +308,7 @@ class PerceptronViewer(QtWidgets.QWidget):
             counts[int(point[-1]) - 1] += 1
 
         if counts.count(0) > 0:
-            warning_text.setText("Please ensure your database contains at least"
+            warning_text.setText("Please ensure your dataset contains at least"
                                  " one point in each class!")
             return
 
@@ -404,16 +357,6 @@ class PerceptronViewer(QtWidgets.QWidget):
     def start_learning(self):
         """Starts a thread for the perceptron learning algorithm."""
         threading.Thread(target=self.perceptron.run_perceptron).start()
-
-
-def update_form_label(form, for_, text):
-    """A small function to update a label within a PyQt5 FormLayout.
-
-    :param form: The form containing the label you are trying to update.
-    :param for_: The widget being labelled by the label you want to update.
-    :param text: The new text of the label
-    """
-    form.labelForField(for_).setText(text)
 
 
 def weights_to_y(weights):
@@ -468,6 +411,15 @@ def gen_linearly_separable(min_x, max_x, min_y, max_y):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
+    TITLE_FONT = QFont('Arial', 16)
+    TITLE_FONT.setUnderline(True)
+    TITLE_FONT.setCapitalization(QFont.Capitalization.Capitalize)
+    ERROR_FONT = QFont('Arial', 12)
+    LABEL_FONT = QFont('Arial', 10)
+    MIN_FORM_WIDTH = QFontMetrics(ERROR_FONT) \
+        .boundingRect(" Please enter a number for each dimension! ").width()
+
     win = PerceptronViewer()
+
     win.show()
     sys.exit(app.exec_())

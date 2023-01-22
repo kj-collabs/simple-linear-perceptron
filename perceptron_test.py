@@ -4,7 +4,7 @@ Some tests for the perceptron.py class.
 """
 
 __all__ = ["Perceptron", "PerceptronSettings"]
-__version__ = "1.0.1.0"
+__version__ = "1.2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import unittest
