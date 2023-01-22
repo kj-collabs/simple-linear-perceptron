@@ -28,6 +28,7 @@ CLASS_MARKERS = ["bo", "r+"]
 
 MIN_X = -1000
 MAX_X = 1000
+MAX_THREADS = 2 # Number of threads allowed to run
 
 X_PLOTS = np.array([MIN_X, MAX_X])
 
@@ -39,7 +40,6 @@ VIS_SPEEDS = [("Slowest", 0.5), ("Slower", 0.25), ("Normal", 0.1),
 
 class Separator(QtWidgets.QFrame):
     """A line used to visually separate elements of a GUI"""
-
     def __init__(self, shape, width):
         super().__init__()
         self.setFrameShape(shape)
@@ -232,9 +232,25 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addSpacing(14)
         options.addLayout(self.__settings_form)
 
-        layout_canvas.addWidget(FigureCanvas(self.figure))
+        diagnostic_label = QtWidgets.QLabel("Diagnostics")
+        diagnostic_label.setStyleSheet("font-size: 18px; text-decoration: underline")
+        diagnostic_label.setAlignment(Qt.AlignCenter)
+        diagnostic_box = QtWidgets.QVBoxLayout()
+        diagnostic_box.setAlignment(Qt.AlignVCenter)
+        diagnostic_box.addWidget(diagnostic_label)
+        graphAndDiagnosticBox = QtWidgets.QHBoxLayout()
+        graphAndDiagnosticBox.addLayout(diagnostic_box)
+        graphAndDiagnosticBox.addWidget(FigureCanvas(self.figure))
+
+        for label in DIAGNOSTIC_LABELS.values():
+            label.setMaximumWidth(200)
+            label.setAlignment(Qt.AlignCenter)
+            diagnostic_box.addWidget(label)
+
+        layout_canvas.addLayout(graphAndDiagnosticBox)
         layout_canvas.addSpacing(30)
         layout_canvas.addLayout(options)
+
 
     def add_point(self):
         """Takes user input and adds a point at the desired location"""
@@ -284,6 +300,11 @@ class PerceptronViewer(QtWidgets.QWidget):
     def run_perceptron(self):
         """Instantiates and runs a perceptron using user-inputted settings."""
         warning_text = self.__settings_form.warning_text
+
+        # Prevent user from spamming run perceptron
+        if threading.active_count() >= MAX_THREADS:
+            warning_text.setText("Please wait for this algorithm to end!")
+            return
 
         try:
             w_1 = float(self.__settings_form.fields["w_1"].text())
@@ -344,12 +365,16 @@ class PerceptronViewer(QtWidgets.QWidget):
             self.axes.plot(point[0], point[1], CLASS_MARKERS[int(point[2] - 1)])
         self.figure.canvas.draw()
 
-    def update_line(self, weights):
+    def update_line(self, weights, iteration):
         """Update the drawn line based on the weights of the perceptron. Passed
         to the perceptron as the gui_callback attribute.
         :param weights: The weights of the perceptron's decision boundary
         (current iteration)
         """
+        DIAGNOSTIC_LABELS["iteration_label"].setText(f"Current Iteration: {iteration}")
+        DIAGNOSTIC_LABELS["current_weights"].setText(f"Current Weights: \n[w1 = {round(weights[0], 4)}] "
+                                                     f"\n[w2 = {round(weights[1], 4)}] \n[w0 = {round(weights[2], 4)}]")
+
         new_ydata = weights_to_y(weights)
         self.decision_boundary.set_ydata(new_ydata)
         self.figure.canvas.draw()
@@ -418,6 +443,11 @@ if __name__ == "__main__":
     LABEL_FONT = QFont('Arial', 10)
     MIN_FORM_WIDTH = QFontMetrics(ERROR_FONT) \
         .boundingRect(" Please enter a number for each dimension! ").width()
+
+    DIAGNOSTIC_LABELS = {
+        "iteration_label": QtWidgets.QLabel("Current Iteration: 0"),
+        "current_weights": QtWidgets.QLabel("Current Weights: \n[w1 = 0] \n[w2 = 0] \n[w0 = 0]"),
+    }
 
     win = PerceptronViewer()
 
