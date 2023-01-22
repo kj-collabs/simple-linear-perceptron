@@ -81,8 +81,13 @@ class PerceptronViewer(QtWidgets.QWidget):
         options = QtWidgets.QHBoxLayout(self)
 
         # Form to control axis limits
+        ax_container = QtWidgets.QVBoxLayout(self)
+
         ax_lim_form = QtWidgets.QFormLayout(self)
         ax_lim_form.setLabelAlignment(Qt.AlignRight)
+
+        ax_title = QtWidgets.QLabel("Update Axis Limits")
+        ax_title.setStyleSheet("font-size: 18px; text-decoration: underline")
 
         ax_warning_text = QtWidgets.QLabel(self)
         ax_warning_text.setStyleSheet("color: red; font-size: 14px")
@@ -117,10 +122,18 @@ class PerceptronViewer(QtWidgets.QWidget):
         ax_lim_form.addRow("Axis Y Upper Bound: ", ax_y_upper)
         ax_lim_form.addWidget(submit_ax_button)
 
+        ax_container.addWidget(ax_title)
+        ax_container.addSpacing(10)
+        ax_container.addLayout(ax_lim_form)
+        ax_container.addSpacing(20)
+
         # Form to add points to dataset
-        point_vbox = QtWidgets.QVBoxLayout(self)
+        point_container = QtWidgets.QVBoxLayout(self)
         point_add_form = QtWidgets.QFormLayout(self)
         point_add_form.setLabelAlignment(Qt.AlignRight)
+
+        point_title = QtWidgets.QLabel("Add Points to Dataset")
+        point_title.setStyleSheet("font-size: 18px; text-decoration: underline")
 
         point_warning_text = QtWidgets.QLabel(self)
         point_warning_text.setStyleSheet("color: red; font-size: 14px")
@@ -169,15 +182,23 @@ class PerceptronViewer(QtWidgets.QWidget):
         point_add_form.addRow("Point Class: ", point_class)
         point_add_form.addWidget(submit_point_button)
 
-        point_vbox.addLayout(point_add_form)
-        point_vbox.addSpacing(10)
-        point_vbox.addLayout(or_box)
-        point_vbox.addSpacing(10)
-        point_vbox.addWidget(random_dataset_button)
-        point_vbox.addSpacing(20)
+        point_container.addWidget(point_title)
+        point_container.addSpacing(10)
+        point_container.addLayout(point_add_form)
+        point_container.addSpacing(10)
+        point_container.addLayout(or_box)
+        point_container.addSpacing(10)
+        point_container.addWidget(random_dataset_button)
+        point_container.addSpacing(20)
+
+        # Form for updating perceptron settings and running algorithm
+        settings_container = QtWidgets.QVBoxLayout(self)
 
         p_settings_form = QtWidgets.QFormLayout(self)
         p_settings_form.setLabelAlignment(Qt.AlignRight)
+
+        settings_title = QtWidgets.QLabel("Run Perceptron")
+        settings_title.setStyleSheet("font-size: 18px; text-decoration: underline")
 
         settings_warning_text = QtWidgets.QLabel(self)
         settings_warning_text.setStyleSheet("color: red; font-size: 14px")
@@ -228,20 +249,29 @@ class PerceptronViewer(QtWidgets.QWidget):
                                speed_slider)
         p_settings_form.addWidget(run_perceptron_button)
 
+        settings_container.addWidget(settings_title)
+        settings_container.addSpacing(10)
+        settings_container.addLayout(p_settings_form)
+        settings_container.addSpacing(20)
+
         speed_label = p_settings_form.labelForField(speed_slider)
         longest = "Visualisation Speed: " + max([s[0] for s in VIS_SPEEDS])
         long_length = speed_label.fontMetrics().boundingRect(longest).width()
         speed_label.setFixedWidth(long_length)
 
-        options.addLayout(ax_lim_form)
+        ax_container.setAlignment(Qt.AlignTop)
+        point_container.setAlignment(Qt.AlignTop)
+        settings_container.setAlignment(Qt.AlignTop)
+
+        options.addLayout(ax_container)
         options.addSpacing(14)
         options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
         options.addSpacing(14)
-        options.addLayout(point_vbox)
+        options.addLayout(point_container)
         options.addSpacing(14)
         options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
         options.addSpacing(14)
-        options.addLayout(p_settings_form)
+        options.addLayout(settings_container)
 
         layout_canvas.addWidget(self.canvas)
         layout_canvas.addSpacing(30)
