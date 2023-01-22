@@ -1,13 +1,19 @@
-import numpy as np
-import time
 """
 perceptron.py
 Runs the Perceptron algorithm.
 """
 
+__all__ = ["Perceptron"]
+__version__ = "1.0.0.0"
+__authors__ = "Kush Bharakhada and Jack Sanders"
+
+import numpy as np
+import time
+
 
 class Perceptron(object):
-    def __init__(self, w, p, train, limit, gui_update_callback):
+    def __init__(self, w, p, train, limit, gui_update_callback=print,
+                 iteration_delay=0.25):
         """
         Constructor for the Perceptron Algorithm.
         :param w: Weights in order [w1, w2, w0 (bias)]
@@ -21,6 +27,7 @@ class Perceptron(object):
         self.__train_points = self.__format_training_points(train)
         self.__iter_limit = limit
         self.__callback = gui_update_callback
+        self.__delay = iteration_delay
 
     def set_learning_rate(self, p):
         """
@@ -67,7 +74,7 @@ class Perceptron(object):
             # Update graph
             self.__callback(self.__weights)
             iteration += 1
-            time.sleep(0.1)
+            time.sleep(self.__delay)
 
     def __format_training_points(self, training_points):
         # Split the training points into class 1 and class 2
