@@ -4,7 +4,7 @@ Runs the Perceptron algorithm.
 """
 
 __all__ = ["Perceptron", "PerceptronSettings"]
-__version__ = "1.2.0.1"
+__version__ = "1.2.1.1"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import time

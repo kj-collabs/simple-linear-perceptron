@@ -6,7 +6,7 @@ perceptron learning algorithm.
 """
 
 __all__ = ["PerceptronViewer"]
-__version__ = "1.2.0.1"
+__version__ = "1.2.1.1"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
@@ -323,7 +323,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         except ValueError:
             warning_text.setText("Please enter a value for each setting!")
             return
-        print(self.dataset)
         counts = [0, 0]
         for point in self.dataset:
             counts[int(point[-1]) - 1] += 1
