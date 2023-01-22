@@ -41,7 +41,7 @@ class Perceptron:
         self.__learning_rate = settings.learning_rate
         self.__iter_limit = settings.iter_limit
         self.__delay = settings.visualisation_speed
-        self.__train_points = self.__format_training_points(train_data)
+        self.__train_points = self.format_training_points(train_data)
         self.__callback = gui_update_callback
 
     def set_learning_rate(self, learning):
@@ -94,7 +94,7 @@ class Perceptron:
             self.__weights -= self.__learning_rate \
                               * np.sum(np.array(misclassified_points), axis=0)
             # Update graph
-            self.__callback(self.__weights)
+            self.__callback(self.__weights, iteration)
             iteration += 1
             time.sleep(self.__delay)
 
@@ -108,16 +108,3 @@ class Perceptron:
         class1[:, -1] = 1
         class2[:, -1] = 1
         return class1, class2
-
-
-# Remove later
-if __name__ == "__main__":
-    init_weights = np.array([1.0, -1.0, 1.0])
-    LEARNING_RATE = 0.5
-    train = np.array(
-        [[0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 2, 2], [2, 1, 2], [2, 2, 2]])
-
-    perceptron_settings = PerceptronSettings(init_weights, LEARNING_RATE, 100,
-                                             0.25)
-    perceptron = Perceptron(perceptron_settings, train)
-    perceptron.run_perceptron()

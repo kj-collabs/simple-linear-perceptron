@@ -28,6 +28,7 @@ CLASS_MARKERS = ["bo", "r+"]
 
 MIN_X = -1000
 MAX_X = 1000
+MAX_THREADS = 2 # Number of threads allowed to run
 
 X_PLOTS = np.array([MIN_X, MAX_X])
 
@@ -338,6 +339,11 @@ class PerceptronViewer(QtWidgets.QWidget):
         """Instantiates and runs a perceptron using user-inputted settings."""
         warning_text = self.__settings_form["warning_text"]
 
+        # Prevent user from spamming run perceptron
+        if threading.active_count() >= MAX_THREADS:
+            warning_text.setText("Please wait for this algorithm to end!")
+            return
+
         try:
             w_1 = float(self.__settings_form["w_1"].text())
             w_2 = float(self.__settings_form["w_2"].text())
@@ -391,12 +397,13 @@ class PerceptronViewer(QtWidgets.QWidget):
             self.axes.plot(point[0], point[1], CLASS_MARKERS[int(point[2] - 1)])
         self.figure.canvas.draw()
 
-    def update_line(self, weights):
+    def update_line(self, weights, iteration):
         """Update the drawn line based on the weights of the perceptron. Passed
         to the perceptron as the gui_callback attribute.
         :param weights: The weights of the perceptron's decision boundary
         (current iteration)
         """
+        #print(iteration) #TODO Add iteration diagnostic
         new_ydata = weights_to_y(weights)
         self.decision_boundary.set_ydata(new_ydata)
         self.figure.canvas.draw()
