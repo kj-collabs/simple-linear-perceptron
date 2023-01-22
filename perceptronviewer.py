@@ -92,6 +92,12 @@ class PerceptronViewer(QtWidgets.QWidget):
         ax_warning_text = QtWidgets.QLabel(self)
         ax_warning_text.setStyleSheet("color: red; font-size: 14px")
 
+        error_width = ax_warning_text.fontMetrics()\
+            .boundingRect(" Please enter a number for each dimension! ").width()
+        error_width = int(error_width * 1.25)
+
+        ax_warning_text.setFixedWidth(error_width)
+
         ax_x_lower = QtWidgets.QLineEdit(self)
         ax_x_lower.setValidator(QIntValidator(-999, 999))
 
@@ -115,7 +121,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         submit_ax_button = QtWidgets.QPushButton("Update Axes")
         submit_ax_button.clicked.connect(self.update_axes)
 
-        ax_lim_form.addWidget(ax_warning_text)
         ax_lim_form.addRow("Axis X Lower Bound: ", ax_x_lower)
         ax_lim_form.addRow("Axis X Upper Bound: ", ax_x_upper)
         ax_lim_form.addRow("Axis Y Lower Bound: ", ax_y_lower)
@@ -124,6 +129,8 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         ax_container.addWidget(ax_title)
         ax_container.addSpacing(10)
+        ax_container.addWidget(ax_warning_text)
+        ax_container.addSpacing(5)
         ax_container.addLayout(ax_lim_form)
         ax_container.addSpacing(20)
 
@@ -137,6 +144,7 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         point_warning_text = QtWidgets.QLabel(self)
         point_warning_text.setStyleSheet("color: red; font-size: 14px")
+        point_warning_text.setFixedWidth(error_width)
 
         point_x = QtWidgets.QLineEdit(self)
         point_x.setValidator(QDoubleValidator(-10, 10, 4))
@@ -176,7 +184,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         or_box.addSpacing(5)
         or_box.addWidget(right_line)
 
-        point_add_form.addWidget(point_warning_text)
         point_add_form.addRow("Point X: ", point_x)
         point_add_form.addRow("Point Y: ", point_y)
         point_add_form.addRow("Point Class: ", point_class)
@@ -184,6 +191,8 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         point_container.addWidget(point_title)
         point_container.addSpacing(10)
+        point_container.addWidget(point_warning_text)
+        point_container.addSpacing(5)
         point_container.addLayout(point_add_form)
         point_container.addSpacing(10)
         point_container.addLayout(or_box)
@@ -198,10 +207,12 @@ class PerceptronViewer(QtWidgets.QWidget):
         p_settings_form.setLabelAlignment(Qt.AlignRight)
 
         settings_title = QtWidgets.QLabel("Run Perceptron")
-        settings_title.setStyleSheet("font-size: 18px; text-decoration: underline")
+        settings_title.setStyleSheet(
+            "font-size: 18px; text-decoration: underline")
 
         settings_warning_text = QtWidgets.QLabel(self)
         settings_warning_text.setStyleSheet("color: red; font-size: 14px")
+        settings_warning_text.setFixedWidth(error_width)
 
         w1_line_field = QtWidgets.QLineEdit(self)
         w1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
@@ -239,7 +250,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         run_perceptron_button = QtWidgets.QPushButton("Run Perceptron")
         run_perceptron_button.clicked.connect(self.run_perceptron)
 
-        p_settings_form.addWidget(settings_warning_text)
         p_settings_form.addRow("Initial w1: ", w1_line_field)
         p_settings_form.addRow("Initial w2: ", w2_line_field)
         p_settings_form.addRow("Initial w0: ", w0_line_field)
@@ -251,6 +261,8 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         settings_container.addWidget(settings_title)
         settings_container.addSpacing(10)
+        settings_container.addWidget(settings_warning_text)
+        settings_container.addSpacing(5)
         settings_container.addLayout(p_settings_form)
         settings_container.addSpacing(20)
 
@@ -286,6 +298,8 @@ class PerceptronViewer(QtWidgets.QWidget):
         except ValueError:
             warning_text.setText("Please enter a number for each dimension!")
             return
+
+        warning_text.setText("")
 
         class_ = int(self.__point_form["class_label"].currentText())
 
@@ -333,6 +347,8 @@ class PerceptronViewer(QtWidgets.QWidget):
         except ValueError:
             warning_text.setText("Please enter a value for each setting!")
             return
+
+        warning_text.setText("")
 
         self.perceptron = Perceptron([w1, w2, w0], learning_rate, self.dataset,
                                      100, self.update_line, vis_speed)
