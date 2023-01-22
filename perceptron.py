@@ -89,8 +89,8 @@ class Perceptron(object):
 
 # Remove later
 if __name__ == "__main__":
-    w = np.array([1.0, -1.0, 1.0])
-    p = 0.5
+    w = np.array([1.0, -1.0, 0])
+    p = 0.1
     train = np.array([[0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 2, 2], [2, 1, 2], [2, 2, 2]])
 
     perceptron = Perceptron(w, p, train, 100, lambda x: print(x))
