@@ -3,8 +3,8 @@ perceptron_test.py
 Some tests for the perceptron.py class.
 """
 
-__all__ = ["Perceptron", "PerceptronSettings"]
-__version__ = "1.2.0.0"
+__all__ = ["TestPerceptron"]
+__version__ = "1.2.0.1"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import unittest

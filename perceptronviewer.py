@@ -6,7 +6,7 @@ perceptron learning algorithm.
 """
 
 __all__ = ["PerceptronViewer"]
-__version__ = "1.2.0.0"
+__version__ = "1.2.0.1"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
@@ -113,6 +113,7 @@ class PerceptronViewer(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
+        self.setWindowTitle(f"Simple Linear Perceptron Algorithm V{__version__}")
 
         self.figure = plt.gcf()
         self.axes = self.figure.add_subplot(111)
@@ -233,7 +234,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addLayout(self.__settings_form)
 
         diagnostic_label = QtWidgets.QLabel("Diagnostics")
-        diagnostic_label.setStyleSheet("font-size: 18px; text-decoration: underline")
+        diagnostic_label.setFont(TITLE_FONT)
         diagnostic_label.setAlignment(Qt.AlignCenter)
         diagnostic_box = QtWidgets.QVBoxLayout()
         diagnostic_box.setAlignment(Qt.AlignVCenter)
@@ -436,11 +437,11 @@ def gen_linearly_separable(min_x, max_x, min_y, max_y):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
-    TITLE_FONT = QFont('Arial', 16)
+    TITLE_FONT = QFont('Arial', 10)
     TITLE_FONT.setUnderline(True)
     TITLE_FONT.setCapitalization(QFont.Capitalization.Capitalize)
-    ERROR_FONT = QFont('Arial', 12)
-    LABEL_FONT = QFont('Arial', 10)
+    ERROR_FONT = QFont('Arial', 8)
+    LABEL_FONT = QFont('Arial', 7)
     MIN_FORM_WIDTH = QFontMetrics(ERROR_FONT) \
         .boundingRect(" Please enter a number for each dimension! ").width()
 
