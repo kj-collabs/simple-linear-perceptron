@@ -40,7 +40,6 @@ VIS_SPEEDS = [("Slowest", 0.5), ("Slower", 0.25), ("Normal", 0.1),
 
 class Separator(QtWidgets.QFrame):
     """A line used to visually separate elements of a GUI"""
-
     def __init__(self, shape, width):
         super().__init__()
         self.setFrameShape(shape)
@@ -286,9 +285,19 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addSpacing(14)
         options.addLayout(settings_container)
 
-        layout_canvas.addWidget(FigureCanvas(self.figure))
+        diagnostic_box = QtWidgets.QVBoxLayout()
+        graphAndDiagnosticBox = QtWidgets.QHBoxLayout()
+
+        graphAndDiagnosticBox.addLayout(diagnostic_box)
+        graphAndDiagnosticBox.addWidget(FigureCanvas(self.figure))
+
+        for label in DIAGNOSTIC_LABELS.values():
+            diagnostic_box.addWidget(label)
+
+        layout_canvas.addLayout(graphAndDiagnosticBox)
         layout_canvas.addSpacing(30)
         layout_canvas.addLayout(options)
+
 
     def add_point(self):
         """Takes user input and adds a point at the desired location"""
@@ -403,7 +412,10 @@ class PerceptronViewer(QtWidgets.QWidget):
         :param weights: The weights of the perceptron's decision boundary
         (current iteration)
         """
-        #print(iteration) #TODO Add iteration diagnostic
+        DIAGNOSTIC_LABELS["iteration_label"].setText(f"Current Iteration: {iteration}")
+        DIAGNOSTIC_LABELS["current_weights"].setText(f"Current Weights: [w1 = {round(weights[0], 4)}] "
+                                                     f"[w2 = {round(weights[1], 4)}] [w0 = {round(weights[2], 4)}]")
+
         new_ydata = weights_to_y(weights)
         self.decision_boundary.set_ydata(new_ydata)
         self.figure.canvas.draw()
@@ -474,6 +486,11 @@ def gen_linearly_separable(min_x, max_x, min_y, max_y):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
+
+    DIAGNOSTIC_LABELS = {
+        "iteration_label": QtWidgets.QLabel("Current Iteration: 0"),
+        "current_weights": QtWidgets.QLabel("Current Weights: [w1 = 1] [w2 = 1] [w0 = 1]"),
+    }
 
     win = PerceptronViewer()
     win.show()
