@@ -11,15 +11,15 @@ __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
 import threading
-import traceback
 
 import numpy as np
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QSizePolicy
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 from perceptron import Perceptron
@@ -59,19 +59,16 @@ class PerceptronViewer(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
-        self.perceptron = None
         self.figure = plt.gcf()
-        self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
 
         self.axes.set_xlim(-10, 10)
         self.axes.set_ylim(-10, 10)
 
+        self.perceptron = None
+        self.decision_boundary = None
+
         self.dataset = []
-        self.weights = [-0.5, -0.5, 0]
-        self.learning_rate = 100
-        self.visualisation_speed = 0.25
-        self.iteration_limit = 100
 
         layout_canvas = QtWidgets.QVBoxLayout(self)
 
@@ -211,14 +208,14 @@ class PerceptronViewer(QtWidgets.QWidget):
         settings_warning_text.setStyleSheet("color: red; font-size: 14px")
         settings_warning_text.setFixedWidth(error_width)
 
-        w1_line_field = QtWidgets.QLineEdit(self)
-        w1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+        w_1_line_field = QtWidgets.QLineEdit(self)
+        w_1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
 
-        w2_line_field = QtWidgets.QLineEdit(self)
-        w2_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+        w_2_line_field = QtWidgets.QLineEdit(self)
+        w_2_line_field.setValidator(QDoubleValidator(-999, 999, 4))
 
-        w0_line_field = QtWidgets.QLineEdit(self)
-        w0_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+        w_0_line_field = QtWidgets.QLineEdit(self)
+        w_0_line_field.setValidator(QDoubleValidator(-999, 999, 4))
 
         learning_line_field = QtWidgets.QLineEdit(self)
         learning_line_field.setValidator(QDoubleValidator(0, 10, 2))
@@ -232,17 +229,17 @@ class PerceptronViewer(QtWidgets.QWidget):
         speed_slider.setSingleStep(1)
         speed_slider.setValue(len(VIS_SPEEDS) // 2)
 
-        def slider_update(i): update_form_label(p_settings_form, speed_slider,
-                                                "Visualisation Speed: "
-                                                + VIS_SPEEDS[i][0])
+        def slider_update(i):
+            update_form_label(p_settings_form, speed_slider,
+                              f"Visualisation Speed: {VIS_SPEEDS[i][0]}")
 
         speed_slider.valueChanged.connect(slider_update)
 
         self.__settings_form = {
             "warning_text": settings_warning_text,
-            "w_1": w1_line_field,
-            "w_2": w2_line_field,
-            "w_0": w0_line_field,
+            "w_1": w_1_line_field,
+            "w_2": w_2_line_field,
+            "w_0": w_0_line_field,
             "learning_rate": learning_line_field,
             "visualisation_speed": speed_slider,
             "iteration_limit": iteration_limit_field,
@@ -251,9 +248,9 @@ class PerceptronViewer(QtWidgets.QWidget):
         run_perceptron_button = QtWidgets.QPushButton("Run Perceptron")
         run_perceptron_button.clicked.connect(self.run_perceptron)
 
-        p_settings_form.addRow("Initial w1: ", w1_line_field)
-        p_settings_form.addRow("Initial w2: ", w2_line_field)
-        p_settings_form.addRow("Initial w0: ", w0_line_field)
+        p_settings_form.addRow("Initial w_1: ", w_1_line_field)
+        p_settings_form.addRow("Initial w_2: ", w_2_line_field)
+        p_settings_form.addRow("Initial w_0: ", w_0_line_field)
         p_settings_form.addRow("Learning Rate: ", learning_line_field)
         p_settings_form.addRow("Iteration Limit: ", iteration_limit_field)
         p_settings_form.addRow("Visualisation Speed: "
@@ -269,7 +266,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         settings_container.addSpacing(20)
 
         speed_label = p_settings_form.labelForField(speed_slider)
-        longest = "Visualisation Speed: " + max([s[0] for s in VIS_SPEEDS])
+        longest = "Visualisation Speed: " + max(s[0] for s in VIS_SPEEDS)
         long_length = speed_label.fontMetrics().boundingRect(longest).width()
         speed_label.setFixedWidth(long_length)
 
@@ -287,7 +284,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         options.addSpacing(14)
         options.addLayout(settings_container)
 
-        layout_canvas.addWidget(self.canvas)
+        layout_canvas.addWidget(FigureCanvas(self.figure))
         layout_canvas.addSpacing(30)
         layout_canvas.addLayout(options)
 
@@ -337,12 +334,13 @@ class PerceptronViewer(QtWidgets.QWidget):
         self.figure.canvas.draw()
 
     def run_perceptron(self):
+        """"Instantiates and runs a perceptron using user-inputted settings."""
         warning_text = self.__settings_form["warning_text"]
 
         try:
-            w1 = float(self.__settings_form["w_1"].text())
-            w2 = float(self.__settings_form["w_2"].text())
-            w0 = float(self.__settings_form["w_0"].text())
+            w_1 = float(self.__settings_form["w_1"].text())
+            w_2 = float(self.__settings_form["w_2"].text())
+            w_0 = float(self.__settings_form["w_0"].text())
             learning_rate = float(self.__settings_form["learning_rate"].text())
             iter_limit = int(self.__settings_form["iteration_limit"].text())
             speed = int(self.__settings_form["visualisation_speed"].value())
@@ -353,11 +351,12 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         warning_text.setText("")
 
-        y = weights_to_y(self.weights)
+        y = weights_to_y([w_1, w_2, w_0])
         (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
 
-        self.perceptron = Perceptron([w1, w2, w0], learning_rate, self.dataset,
-                                     iter_limit, self.update_line, vis_speed)
+        self.perceptron = Perceptron([w_1, w_2, w_0], learning_rate,
+                                     self.dataset, iter_limit, self.update_line,
+                                     vis_speed)
 
         self.start_learning()
 
@@ -396,14 +395,19 @@ class PerceptronViewer(QtWidgets.QWidget):
 
 
 def update_form_label(form, for_, text):
+    """A small function to update a label within a PyQt5 FormLayout.
+
+    :param form: The form containing the label you are trying to update.
+    :param for_: The widget being labelled by the label you want to update.
+    :param text: The new text of the label
+    """
     form.labelForField(for_).setText(text)
 
 
 def weights_to_y(weights):
-    """Converts perceptron weights (a vector of w1, w2, w0) to y values, usable
-    for plotting in matplotlib.
+    """Converts perceptron weights (a vector of w_1, w_2, w_0) to y values,
+    usable for plotting in matplotlib.
     :param weights: The weights of the current iteration
-    :param x: The x values for which to calculate the corrosponding y values
     :return: The calculated y values
     """
     return X_PLOTS * -weights[0] / weights[1] - weights[2] / weights[1]
