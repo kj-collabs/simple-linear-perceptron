@@ -6,7 +6,7 @@ perceptron learning algorithm.
 """
 
 __all__ = ["PerceptronViewer"]
-__version__ = "1.0.0.0"
+__version__ = "1.0.1.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
@@ -22,7 +22,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-from perceptron import Perceptron
+from perceptron import Perceptron, PerceptronSettings
 
 CLASS_MARKERS = ["bo", "r+"]
 
@@ -72,12 +72,12 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         layout_canvas = QtWidgets.QVBoxLayout(self)
 
-        options = QtWidgets.QHBoxLayout(self)
+        options = QtWidgets.QHBoxLayout()
 
         # Form to control axis limits
-        ax_container = QtWidgets.QVBoxLayout(self)
+        ax_container = QtWidgets.QVBoxLayout()
 
-        ax_lim_form = QtWidgets.QFormLayout(self)
+        ax_lim_form = QtWidgets.QFormLayout()
         ax_lim_form.setLabelAlignment(Qt.AlignRight)
 
         ax_title = QtWidgets.QLabel("Update Axis Limits")
@@ -129,8 +129,8 @@ class PerceptronViewer(QtWidgets.QWidget):
         ax_container.addSpacing(20)
 
         # Form to add points to dataset
-        point_container = QtWidgets.QVBoxLayout(self)
-        point_add_form = QtWidgets.QFormLayout(self)
+        point_container = QtWidgets.QVBoxLayout()
+        point_add_form = QtWidgets.QFormLayout()
         point_add_form.setLabelAlignment(Qt.AlignRight)
 
         point_title = QtWidgets.QLabel("Add Points to Dataset")
@@ -159,7 +159,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         submit_point_button = QtWidgets.QPushButton("Add Point")
         submit_point_button.clicked.connect(self.add_point)
 
-        or_box = QtWidgets.QHBoxLayout(self)
+        or_box = QtWidgets.QHBoxLayout()
         left_line = Separator(QtWidgets.QFrame.HLine, 2)
 
         or_label = QtWidgets.QLabel("OR", self)
@@ -195,9 +195,9 @@ class PerceptronViewer(QtWidgets.QWidget):
         point_container.addSpacing(20)
 
         # Form for updating perceptron settings and running algorithm
-        settings_container = QtWidgets.QVBoxLayout(self)
+        settings_container = QtWidgets.QVBoxLayout()
 
-        p_settings_form = QtWidgets.QFormLayout(self)
+        p_settings_form = QtWidgets.QFormLayout()
         p_settings_form.setLabelAlignment(Qt.AlignRight)
 
         settings_title = QtWidgets.QLabel("Run Perceptron")
@@ -207,6 +207,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         settings_warning_text = QtWidgets.QLabel(self)
         settings_warning_text.setStyleSheet("color: red; font-size: 14px")
         settings_warning_text.setFixedWidth(error_width)
+        settings_warning_text.setWordWrap(True)
 
         w_1_line_field = QtWidgets.QLineEdit(self)
         w_1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
@@ -334,7 +335,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         self.figure.canvas.draw()
 
     def run_perceptron(self):
-        """"Instantiates and runs a perceptron using user-inputted settings."""
+        """Instantiates and runs a perceptron using user-inputted settings."""
         warning_text = self.__settings_form["warning_text"]
 
         try:
@@ -349,14 +350,25 @@ class PerceptronViewer(QtWidgets.QWidget):
             warning_text.setText("Please enter a value for each setting!")
             return
 
+        counts = [0, 0]
+        for point in self.dataset:
+            counts[int(point[-1]) - 1] += 1
+
+        if counts.count(0) > 0:
+            warning_text.setText("Please ensure your database contains at least"
+                                 " one point in each class!")
+            return
+
         warning_text.setText("")
+
+        self.dataset = np.array(self.dataset)
 
         y = weights_to_y([w_1, w_2, w_0])
         (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
 
-        self.perceptron = Perceptron([w_1, w_2, w_0], learning_rate,
-                                     self.dataset, iter_limit, self.update_line,
-                                     vis_speed)
+        p_settings = PerceptronSettings((np.array([w_1, w_2, w_0])),
+                                        learning_rate, iter_limit, vis_speed)
+        self.perceptron = Perceptron(p_settings, self.dataset, self.update_line)
 
         self.start_learning()
 
