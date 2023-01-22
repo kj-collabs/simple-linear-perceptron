@@ -11,14 +11,41 @@ __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
 import threading
+import traceback
 
 import numpy as np
 
 import matplotlib.pyplot as plt
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QSizePolicy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtWidgets
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 from perceptron import Perceptron
+
+CLASS_MARKERS = ["bo", "r+"]
+
+MIN_X = -1000
+MAX_X = 1000
+
+X_PLOTS = np.array([MIN_X, MAX_X])
+
+SEPARATOR_COLOUR = "#c0c0c0"
+
+VIS_SPEEDS = [("Slowest", 0.5), ("Slower", 0.25), ("Normal", 0.1),
+              ("Faster", 0.05), ("Fastest", 0.01)]
+
+
+class Separator(QtWidgets.QFrame):
+    """A line used to visually separate elements of a GUI"""
+
+    def __init__(self, shape, width):
+        super().__init__()
+        self.setFrameShape(shape)
+        self.setLineWidth(width)
+        self.setStyleSheet(f"background-color: {SEPARATOR_COLOUR}; "
+                           f"color: {SEPARATOR_COLOUR}")
 
 
 class PerceptronViewer(QtWidgets.QWidget):
@@ -28,37 +55,280 @@ class PerceptronViewer(QtWidgets.QWidget):
     sliders, etc.), as well as the actual plot of training data and the decision
     boundary.
     """
+
     def __init__(self):
         super().__init__()
 
-        self.dataset = gen_linearly_separable()
-        self.perceptron = Perceptron([-0.5, -0.5, 1], 0.5, self.dataset, 100,
-                                     self.update_line)
+        self.perceptron = None
         self.figure = plt.gcf()
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.mpl_connect("button_press_event", self._on_left_click)
         self.axes = self.figure.add_subplot(111)
 
-        self.decision_boundary_x = np.array([-4, 4])
-        y = weights_to_y([-0.5, -0.5, 1], self.decision_boundary_x)
-        (self.decision_boundary,) = self.axes.plot(self.decision_boundary_x, y)
+        self.axes.set_xlim(-10, 10)
+        self.axes.set_ylim(-10, 10)
+
+        self.dataset = []
+        self.weights = [-0.5, -0.5, 0]
+        self.learning_rate = 100
+        self.visualisation_speed = 0.25
+        self.iteration_limit = 100
+
+        y = weights_to_y(self.weights)
+        (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
 
         layout_canvas = QtWidgets.QVBoxLayout(self)
+
+        options = QtWidgets.QHBoxLayout(self)
+
+        # Form to control axis limits
+        ax_lim_form = QtWidgets.QFormLayout(self)
+        ax_lim_form.setLabelAlignment(Qt.AlignRight)
+
+        ax_warning_text = QtWidgets.QLabel(self)
+        ax_warning_text.setStyleSheet("color: red; font-size: 14px")
+
+        ax_x_lower = QtWidgets.QLineEdit(self)
+        ax_x_lower.setValidator(QIntValidator(-999, 999))
+
+        ax_x_upper = QtWidgets.QLineEdit(self)
+        ax_x_upper.setValidator(QIntValidator(-999, 999))
+
+        ax_y_lower = QtWidgets.QLineEdit(self)
+        ax_y_lower.setValidator(QIntValidator(-999, 999))
+
+        ax_y_upper = QtWidgets.QLineEdit(self)
+        ax_y_upper.setValidator(QIntValidator(-999, 999))
+
+        self.__axis_form = {
+            "warning_text": ax_warning_text,
+            "x_min": ax_x_lower,
+            "x_max": ax_x_upper,
+            "y_min": ax_y_lower,
+            "y_max": ax_y_upper
+        }
+
+        submit_ax_button = QtWidgets.QPushButton("Update Axes")
+        submit_ax_button.clicked.connect(self.update_axes)
+
+        ax_lim_form.addWidget(ax_warning_text)
+        ax_lim_form.addRow("Axis X Lower Bound: ", ax_x_lower)
+        ax_lim_form.addRow("Axis X Upper Bound: ", ax_x_upper)
+        ax_lim_form.addRow("Axis Y Lower Bound: ", ax_y_lower)
+        ax_lim_form.addRow("Axis Y Upper Bound: ", ax_y_upper)
+        ax_lim_form.addWidget(submit_ax_button)
+
+        # Form to add points to dataset
+        point_vbox = QtWidgets.QVBoxLayout(self)
+        point_add_form = QtWidgets.QFormLayout(self)
+        point_add_form.setLabelAlignment(Qt.AlignRight)
+
+        point_warning_text = QtWidgets.QLabel(self)
+        point_warning_text.setStyleSheet("color: red; font-size: 14px")
+
+        point_x = QtWidgets.QLineEdit(self)
+        point_x.setValidator(QDoubleValidator(-10, 10, 4))
+
+        point_y = QtWidgets.QLineEdit(self)
+        point_y.setValidator(QDoubleValidator(-10, 10, 4))
+
+        point_class = QtWidgets.QComboBox(self)
+        point_class.addItems(["1", "2"])
+
+        self.__point_form = {
+            "warning_text": point_warning_text,
+            "x": point_x,
+            "y": point_y,
+            "class_label": point_class
+        }
+
+        submit_point_button = QtWidgets.QPushButton("Add Point")
+        submit_point_button.clicked.connect(self.add_point)
+
+        or_box = QtWidgets.QHBoxLayout(self)
+        left_line = Separator(QtWidgets.QFrame.HLine, 2)
+
+        or_label = QtWidgets.QLabel("OR", self)
+        or_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        or_label.setStyleSheet("font-size: 16px")
+
+        right_line = Separator(QtWidgets.QFrame.HLine, 2)
+
+        random_dataset_button = QtWidgets.QPushButton(
+            "Generate A Random Dataset")
+        random_dataset_button.clicked.connect(self.generate_random_dataset)
+
+        or_box.addWidget(left_line)
+        or_box.addSpacing(5)
+        or_box.addWidget(or_label)
+        or_box.addSpacing(5)
+        or_box.addWidget(right_line)
+
+        point_add_form.addWidget(point_warning_text)
+        point_add_form.addRow("Point X: ", point_x)
+        point_add_form.addRow("Point Y: ", point_y)
+        point_add_form.addRow("Point Class: ", point_class)
+        point_add_form.addWidget(submit_point_button)
+
+        point_vbox.addLayout(point_add_form)
+        point_vbox.addSpacing(10)
+        point_vbox.addLayout(or_box)
+        point_vbox.addSpacing(10)
+        point_vbox.addWidget(random_dataset_button)
+        point_vbox.addSpacing(20)
+
+        p_settings_form = QtWidgets.QFormLayout(self)
+        p_settings_form.setLabelAlignment(Qt.AlignRight)
+
+        settings_warning_text = QtWidgets.QLabel(self)
+        settings_warning_text.setStyleSheet("color: red; font-size: 14px")
+
+        w1_line_field = QtWidgets.QLineEdit(self)
+        w1_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+
+        w2_line_field = QtWidgets.QLineEdit(self)
+        w2_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+
+        w0_line_field = QtWidgets.QLineEdit(self)
+        w0_line_field.setValidator(QDoubleValidator(-999, 999, 4))
+
+        learning_line_field = QtWidgets.QLineEdit(self)
+        learning_line_field.setValidator(QDoubleValidator(0, 10, 2))
+
+        speed_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
+        speed_slider.setMinimum(0)
+        speed_slider.setMaximum(len(VIS_SPEEDS) - 1)
+        speed_slider.setSingleStep(1)
+        speed_slider.setValue(len(VIS_SPEEDS) // 2)
+
+        def slider_update(i): update_form_label(p_settings_form, speed_slider,
+                                                "Visualisation Speed: "
+                                                + VIS_SPEEDS[i][0])
+
+        speed_slider.valueChanged.connect(slider_update)
+
+        self.__settings_form = {
+            "warning_text": settings_warning_text,
+            "w_1": w1_line_field,
+            "w_2": w2_line_field,
+            "w_0": w0_line_field,
+            "learning_rate": learning_line_field,
+            "visualisation_speed": speed_slider,
+        }
+
+        run_perceptron_button = QtWidgets.QPushButton("Run Perceptron")
+        run_perceptron_button.clicked.connect(self.run_perceptron)
+
+        p_settings_form.addWidget(settings_warning_text)
+        p_settings_form.addRow("Initial w1: ", w1_line_field)
+        p_settings_form.addRow("Initial w2: ", w2_line_field)
+        p_settings_form.addRow("Initial w0: ", w0_line_field)
+        p_settings_form.addRow("Learning Rate: ", learning_line_field)
+        p_settings_form.addRow("Visualisation Speed: "
+                               + VIS_SPEEDS[len(VIS_SPEEDS) // 2][0],
+                               speed_slider)
+        p_settings_form.addWidget(run_perceptron_button)
+
+        speed_label = p_settings_form.labelForField(speed_slider)
+        longest = "Visualisation Speed: " + max([s[0] for s in VIS_SPEEDS])
+        long_length = speed_label.fontMetrics().boundingRect(longest).width()
+        speed_label.setFixedWidth(long_length)
+
+        options.addLayout(ax_lim_form)
+        options.addSpacing(14)
+        options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
+        options.addSpacing(14)
+        options.addLayout(point_vbox)
+        options.addSpacing(14)
+        options.addWidget(Separator(QtWidgets.QFrame.VLine, 4))
+        options.addSpacing(14)
+        options.addLayout(p_settings_form)
+
         layout_canvas.addWidget(self.canvas)
+        layout_canvas.addSpacing(30)
+        layout_canvas.addLayout(options)
 
-        self.plot_dataset()
+    def add_point(self):
+        """Takes user input and adds a point at the desired location"""
+        warning_text = self.__point_form["warning_text"]
+        try:
+            x = float(self.__point_form["x"].text())
+            y = float(self.__point_form["y"].text())
+        except ValueError:
+            warning_text.setText("Please enter a number for each dimension!")
+            return
 
-        threading.Thread(target=self.perceptron.run_perceptron).start()
+        class_ = int(self.__point_form["class_label"].currentText())
 
-    def _on_left_click(self, event):
-        self.axes.scatter(event.xdata, event.ydata)
+        self.dataset.append([x, y, class_])
+        self.axes.plot(x, y, CLASS_MARKERS[int(class_ - 1)])
         self.figure.canvas.draw()
+
+    def update_axes(self):
+        """Takes user input and updates the axis xlim and ylim"""
+        warning_text = self.__axis_form["warning_text"]
+
+        try:
+            min_x = int(self.__axis_form["x_min"].text())
+            max_x = int(self.__axis_form["x_max"].text())
+            min_y = int(self.__axis_form["y_min"].text())
+            max_y = int(self.__axis_form["y_max"].text())
+        except ValueError:
+            warning_text.setText("Please enter a number for each bound!")
+            return
+
+        if min_x >= max_x:
+            warning_text.setText("Minimum X must be <= Maximum X!")
+            return
+        if min_y >= max_y:
+            warning_text.setText("Minimum Y must be <= Maximum Y!")
+            return
+
+        warning_text.setText("")
+
+        self.axes.set_xlim(min_x, max_x)
+        self.axes.set_ylim(min_y, max_y)
+
+        self.figure.canvas.draw()
+
+    def run_perceptron(self):
+        warning_text = self.__settings_form["warning_text"]
+
+        try:
+            w1 = float(self.__settings_form["w_1"].text())
+            w2 = float(self.__settings_form["w_2"].text())
+            w0 = float(self.__settings_form["w_0"].text())
+            learning_rate = float(self.__settings_form["learning_rate"].text())
+            speed = int(self.__settings_form["visualisation_speed"].value())
+            vis_speed = VIS_SPEEDS[speed][1]
+        except ValueError:
+            warning_text.setText("Please enter a value for each setting!")
+            return
+
+        self.perceptron = Perceptron([w1, w2, w0], learning_rate, self.dataset,
+                                     100, self.update_line, vis_speed)
+
+        self.start_learning()
+
+    def generate_random_dataset(self):
+        """Takes user input to generate a random dataset and plot it"""
+        self.dataset = gen_linearly_separable(*self.axes.get_xlim(),
+                                              *self.axes.get_ylim())
+        self.plot_dataset()
 
     def plot_dataset(self):
         """Plots the dataset used by the perceptron."""
-        markers = ["bo", "r+"]
+        xlim = self.axes.get_xlim()
+        ylim = self.axes.get_ylim()
+
+        self.axes.clear()
+
+        self.axes.set_xlim(xlim)
+        self.axes.set_ylim(ylim)
         for point in self.dataset:
-            self.axes.plot(point[0], point[1], markers[int(point[2] - 1)])
+            self.axes.plot(point[0], point[1], CLASS_MARKERS[int(point[2] - 1)])
+        y = weights_to_y(self.weights)
+        (self.decision_boundary,) = self.axes.plot(X_PLOTS, y)
+        self.figure.canvas.draw()
 
     def update_line(self, weights):
         """Update the drawn line based on the weights of the perceptron. Passed
@@ -66,50 +336,60 @@ class PerceptronViewer(QtWidgets.QWidget):
         :param weights: The weights of the perceptron's decision boundary
         (current iteration)
         """
-        new_ydata = weights_to_y(weights, self.decision_boundary_x)
+        new_ydata = weights_to_y(weights)
         self.decision_boundary.set_ydata(new_ydata)
         self.figure.canvas.draw()
 
+    def start_learning(self):
+        """Starts a thread for the perceptron learning algorithm."""
+        threading.Thread(target=self.perceptron.run_perceptron).start()
 
-def weights_to_y(weights, x):
+
+def update_form_label(form, for_, text):
+    form.labelForField(for_).setText(text)
+
+
+def weights_to_y(weights):
     """Converts perceptron weights (a vector of w1, w2, w0) to y values, usable
     for plotting in matplotlib.
     :param weights: The weights of the current iteration
     :param x: The x values for which to calculate the corrosponding y values
     :return: The calculated y values
     """
-    return x * -weights[0] / weights[1] - weights[2] / weights[1]
+    return X_PLOTS * -weights[0] / weights[1] - weights[2] / weights[1]
 
 
-def gen_linearly_separable():
+def gen_linearly_separable(min_x, max_x, min_y, max_y):
     """Generates a random, linearly separable dataset. Works by first randomly
     choosing the axis in which the dataset should be separable (i.e. if it
     should be separable by a horizontal or vertical line) and then choosing
     the point along that axis at which to split the dataset.
     :return: A dataset of points in the form [x, y, class]
     """
+    point_lims = [[min_x, max_x], [min_y, max_y]]
+
     dataset = np.array([[]])
-    min_point = -4
-    max_point = 4
 
     # 0 - Separated on X axis, 1 - Separated on Y axis
     sep_axis = np.random.choice([0, 1], 1)[0]
 
+    axis_lims = point_lims[sep_axis]
+
     # The point at which the two classes are separated
-    sep_point = np.random.uniform(min_point, max_point, 1)[0]
+    sep_point = np.random.uniform(axis_lims[0], axis_lims[1], 1)[0]
 
     # Calculate minimum/maximum x/y values from randomly chosen axis &
     # separation point
-    min_x = [-4, -4 if sep_axis != 0 else sep_point + 0.1]
-    max_x = [4 if sep_axis != 0 else sep_point - 0.1, 4]
+    min_x_points = [min_x, min_x if sep_axis != 0 else sep_point + 0.1]
+    max_x_points = [max_x if sep_axis != 0 else sep_point - 0.1, max_x]
 
-    min_y = [-4, -4 if sep_axis != 1 else sep_point + 0.1]
-    max_y = [4 if sep_axis != 1 else sep_point - 0.1, 4]
+    min_y_points = [min_y, min_y if sep_axis != 1 else sep_point + 0.1]
+    max_y_points = [max_y if sep_axis != 1 else sep_point - 0.1, max_y]
 
     # Randomly generate the points based on the minimums/maximums
     for i in range(2):
-        x_vals = np.random.uniform(min_x[i], max_x[i], 50)
-        y_vals = np.random.uniform(min_y[i], max_y[i], 50)
+        x_vals = np.random.uniform(min_x_points[i], max_x_points[i], 50)
+        y_vals = np.random.uniform(min_y_points[i], max_y_points[i], 50)
 
         generated_points = np.dstack((x_vals, y_vals, np.full((1, 50), i + 1)))[
             0]
