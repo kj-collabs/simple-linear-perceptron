@@ -252,7 +252,6 @@ class PerceptronViewer(QtWidgets.QWidget):
         layout_canvas.addSpacing(30)
         layout_canvas.addLayout(options)
 
-
     def add_point(self):
         """Takes user input and adds a point at the desired location"""
         warning_text = self.__point_form.warning_text
@@ -267,7 +266,7 @@ class PerceptronViewer(QtWidgets.QWidget):
 
         class_ = int(self.__point_form.fields["class"].currentText())
 
-        self.dataset.append([x, y, class_])
+        self.dataset = np.vstack((self.dataset, [x, y, class_]))
         self.axes.plot(x, y, CLASS_MARKERS[int(class_ - 1)])
         self.figure.canvas.draw()
 
@@ -324,7 +323,7 @@ class PerceptronViewer(QtWidgets.QWidget):
         except ValueError:
             warning_text.setText("Please enter a value for each setting!")
             return
-
+        print(self.dataset)
         counts = [0, 0]
         for point in self.dataset:
             counts[int(point[-1]) - 1] += 1
