@@ -4,7 +4,7 @@ Some tests for the perceptron.py class.
 """
 
 __all__ = ["TestPerceptron"]
-__version__ = "1.2.1.1"
+__version__ = "2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import unittest
@@ -33,7 +33,7 @@ class TestPerceptron(unittest.TestCase):
         """Creates a perceptron for use in tests."""
         settings = PerceptronSettings(self.weights, self.learning_rate,
                                       self.iterations, 0.01)
-        return Perceptron(settings, self.train_points, lambda x: x)
+        return Perceptron(settings, self.train_points, lambda x, y: x)
 
     def test_constructor_learning_rate_set(self):
         """Check learning rate is set properly in constructor."""

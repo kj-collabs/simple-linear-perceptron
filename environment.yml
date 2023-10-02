@@ -1,0 +1,12 @@
+name: KJ-Perceptron
+channels:
+  - defaults
+dependencies:
+  - python==3.8
+  - pyqt==5.15.7
+  - numpy==1.24.3
+  - matplotlib==3.7.2
+  - pip:
+    - darkdetect==0.7.1
+    - pyqtdarktheme==2.1.0
+prefix: /home/jacksanders/anaconda3/envs/KJ-Perceptron

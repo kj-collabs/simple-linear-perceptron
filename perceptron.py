@@ -4,7 +4,7 @@ Runs the Perceptron algorithm.
 """
 
 __all__ = ["Perceptron", "PerceptronSettings"]
-__version__ = "1.2.1.1"
+__version__ = "2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import time
@@ -14,6 +14,10 @@ import numpy as np
 
 CLASS_1 = 1
 CLASS_2 = -1
+
+
+def diagnostic_print(w, i):
+    print(f"Iteration: {i}\nWeights: {w}")
 
 
 class PerceptronSettings(typing.NamedTuple):
@@ -30,7 +34,7 @@ class Perceptron:
     """
 
     def __init__(self, settings: PerceptronSettings, train_data: np.ndarray,
-                 gui_update_callback=print):
+                 gui_update_callback=diagnostic_print):
         """
         Constructor for the Perceptron Algorithm.
         :param settings: An instance of PerceptronSettings

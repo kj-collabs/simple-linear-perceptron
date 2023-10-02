@@ -6,7 +6,7 @@ perceptron learning algorithm.
 """
 
 __all__ = ["PerceptronViewer"]
-__version__ = "1.2.1.1"
+__version__ = "2.0.0"
 __authors__ = "Kush Bharakhada and Jack Sanders"
 
 import sys
@@ -21,6 +21,8 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QFont, QFontMetrics
+
+import qdarktheme
 
 from perceptron import Perceptron, PerceptronSettings
 
@@ -116,7 +118,11 @@ class PerceptronViewer(QtWidgets.QWidget):
         self.setWindowTitle(f"Simple Linear Perceptron Algorithm V{__version__}")
 
         self.figure = plt.gcf()
+        self.figure.patch.set_facecolor('#F8F9FA')
+
         self.axes = self.figure.add_subplot(111)
+        self.axes.patch.set_facecolor('#F8F9FA')
+        self.axes.set_facecolor('#F8F9FA')
 
         self.axes.set_xlim(-10, 10)
         self.axes.set_ylim(-10, 10)
@@ -321,7 +327,7 @@ class PerceptronViewer(QtWidgets.QWidget):
             vis_speed = VIS_SPEEDS[speed][1]
 
         except ValueError:
-            warning_text.setText("Please enter a value for each setting!")
+            warning_text.setText("Please enter a valid value for each setting!")
             return
         counts = [0, 0]
         for point in self.dataset:
@@ -389,6 +395,11 @@ def weights_to_y(weights):
     :param weights: The weights of the current iteration
     :return: The calculated y values
     """
+
+    # Add tiny number to prevent division by 0
+    if weights[1] == 0:
+        weights[1] += 0.0001
+
     return X_PLOTS * -weights[0] / weights[1] - weights[2] / weights[1]
 
 
@@ -433,7 +444,9 @@ def gen_linearly_separable(min_x, max_x, min_y, max_y):
 
 
 if __name__ == "__main__":
+    qdarktheme.enable_hi_dpi()
     app = QtWidgets.QApplication(sys.argv)
+    qdarktheme.setup_theme(theme="light")
 
     TITLE_FONT = QFont('Arial', 10)
     TITLE_FONT.setUnderline(True)
